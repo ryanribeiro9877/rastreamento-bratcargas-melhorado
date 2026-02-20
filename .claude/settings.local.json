@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(timeout 5 cmd:*)",
+      "Bash(node:*)",
+      "Bash(del check-supabase.js check-details.js)",
+      "WebFetch(domain:doc.placafipe.com.br)",
+      "WebFetch(domain:apibrasil.com.br)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:documenter.getpostman.com)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(ping:*)",
+      "WebFetch(domain:brasilapi.com.br)",
+      "WebFetch(domain:apiplacas.com.br)",
+      "WebFetch(domain:www.placaapi.com)",
+      "Bash(npm install:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: replace ViaCEP with cep-promise and remove plate lookup feature\n\n- Replace ViaCEP API with cep-promise for multi-provider CEP lookup\n- Remove placaFipe service and vehicle plate auto-fill feature \\(API offline\\)\n- Simplify CargaForm by removing plate lookup states and UI components\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git stash pop:*)"
+    ]
+  }
+}

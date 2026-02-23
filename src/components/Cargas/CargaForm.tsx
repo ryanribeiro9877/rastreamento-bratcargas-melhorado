@@ -228,9 +228,39 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
         body: JSON.stringify({ carga_id: carga.id, status: 'aguardando' })
       }).catch(() => {});
 
+      // Gerar link de rastreamento (se houver telefone)
+      let linkRastreamento = '';
       if (telefoneParaWhatsapp || telefoneParaContato) {
         try {
-          const linkRastreamento = await rastreamentoService.gerarLinkRastreamento(carga.id, (telefoneParaWhatsapp || telefoneParaContato), token);
+          linkRastreamento = await rastreamentoService.gerarLinkRastreamento(carga.id, (telefoneParaWhatsapp || telefoneParaContato), token);
+        } catch (linkErr) { console.warn('[CARGA] Falha ao gerar link:', linkErr); }
+      }
+
+      // Enviar dados do motorista para o webhook n8n (WhatsApp via fluxo)
+      const mensagemWebhook = linkRastreamento
+        ? rastreamentoService.gerarMensagemCompartilhamento(linkRastreamento, formData.motorista_nome || undefined)
+        : '';
+      const webhookPayload = {
+        nome: formData.motorista_nome || null,
+        url: linkRastreamento || null,
+        numero: (telefoneParaWhatsapp || telefoneParaContato) || null,
+        mensagem: mensagemWebhook || null,
+        origem: `${formData.origem_cidade}/${formData.origem_uf}`,
+        destino: `${formData.destino_cidade}/${formData.destino_uf}`,
+      };
+      fetch('https://webhook.vpslafelicita.shop/webhook/entregabratcarga', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookPayload)
+      }).then(res => {
+        console.log('[N8N] Webhook enviado, status:', res.status);
+      }).catch(err => {
+        console.error('[N8N] Erro ao enviar webhook:', err);
+      });
+
+      // Exibir tela de envio assistido (se houver telefone e link)
+      if ((telefoneParaWhatsapp || telefoneParaContato) && linkRastreamento) {
+        try {
           const mensagem = rastreamentoService.gerarMensagemCompartilhamento(linkRastreamento, formData.motorista_nome || undefined);
           const whatsappUrl = telefoneParaWhatsapp
             ? rastreamentoService.gerarUrlWhatsApp(telefoneParaWhatsapp, mensagem)
@@ -240,7 +270,7 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
           setLoading(false);
           setEnvioAssistido({ linkRastreamento, whatsappUrl, smsUrl });
           return;
-        } catch (linkErr) { console.warn('[CARGA] Falha ao gerar link:', linkErr); }
+        } catch (linkErr) { console.warn('[CARGA] Falha ao montar envio assistido:', linkErr); }
       }
 
       clearTimeout(safetyTimeout);

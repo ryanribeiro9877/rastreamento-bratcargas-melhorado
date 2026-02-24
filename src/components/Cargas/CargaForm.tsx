@@ -248,15 +248,16 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
         origem: `${formData.origem_cidade}/${formData.origem_uf}`,
         destino: `${formData.destino_cidade}/${formData.destino_uf}`,
       };
-      fetch('https://webhook.vpslafelicita.shop/webhook/entregabratcarga', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookPayload)
-      }).then(res => {
-        console.log('[N8N] Webhook enviado, status:', res.status);
-      }).catch(err => {
-        console.error('[N8N] Erro ao enviar webhook:', err);
-      });
+      try {
+        const webhookRes = await fetch('https://webhook.vpslafelicita.shop/webhook/entregabratcarga', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(webhookPayload)
+        });
+        console.log('[N8N] Webhook enviado, status:', webhookRes.status);
+      } catch (webhookErr) {
+        console.error('[N8N] Erro ao enviar webhook:', webhookErr);
+      }
 
       // Exibir tela de envio assistido (se houver telefone e link)
       if ((telefoneParaWhatsapp || telefoneParaContato) && linkRastreamento) {

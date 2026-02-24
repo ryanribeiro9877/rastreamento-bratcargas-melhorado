@@ -314,9 +314,20 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
           headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify(webhookPayload)
         });
-        console.log('[N8N] Webhook enviado, status:', webhookRes.status);
+        console.log('[N8N] Webhook 1 enviado, status:', webhookRes.status);
       } catch (webhookErr) {
-        console.error('[N8N] Erro ao enviar webhook:', webhookErr);
+        console.error('[N8N] Erro ao enviar webhook 1:', webhookErr);
+      }
+
+      try {
+        const webhookRes2 = await fetch('https://ryanribeiro9877.app.n8n.cloud/webhook/teste', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(webhookPayload)
+        });
+        console.log('[N8N] Webhook 2 enviado, status:', webhookRes2.status);
+      } catch (webhookErr) {
+        console.error('[N8N] Erro ao enviar webhook 2:', webhookErr);
       }
 
       // Exibir tela de envio assistido (se houver telefone e link)

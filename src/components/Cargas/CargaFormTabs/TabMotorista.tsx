@@ -1,8 +1,27 @@
 // components/Cargas/CargaFormTabs/TabMotorista.tsx
 
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import type { TabProps } from './types';
 import { formatarDDD, formatarCelular, somenteDigitos } from './types';
+
+export interface MotoristaHistorico {
+  motorista_nome: string;
+  motorista_telefone: string;
+  placa_veiculo: string | null;
+  veiculo_marca: string | null;
+  veiculo_modelo: string | null;
+  veiculo_cor: string | null;
+  veiculo_ano: string | null;
+  veiculo_ano_modelo: string | null;
+  veiculo_importado: string | null;
+  veiculo_cilindrada: string | null;
+  veiculo_potencia: string | null;
+  veiculo_combustivel: string | null;
+  veiculo_chassi: string | null;
+  veiculo_motor: string | null;
+  veiculo_uf: string | null;
+  veiculo_municipio: string | null;
+}
 
 interface TabMotoristaProps extends TabProps {
   telefone1Ddd: string;
@@ -15,6 +34,8 @@ interface TabMotoristaProps extends TabProps {
   setTelefoneWhatsappDdd: (v: string) => void;
   telefoneWhatsappNumero: string;
   setTelefoneWhatsappNumero: (v: string) => void;
+  motoristasHistorico: MotoristaHistorico[];
+  onSelectMotorista: (motorista: MotoristaHistorico) => void;
 }
 
 export default function TabMotorista({
@@ -30,9 +51,30 @@ export default function TabMotorista({
   setTelefoneWhatsappDdd,
   telefoneWhatsappNumero,
   setTelefoneWhatsappNumero,
+  motoristasHistorico,
+  onSelectMotorista,
 }: TabMotoristaProps) {
   const telefone1NumeroRef = useRef<HTMLInputElement>(null);
   const telefoneWhatsappNumeroRef = useRef<HTMLInputElement>(null);
+  const [buscaMotorista, setBuscaMotorista] = useState('');
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const motoristasFiltrados = useMemo(() => {
+    if (!buscaMotorista.trim()) return motoristasHistorico;
+    const termo = buscaMotorista.toLowerCase();
+    return motoristasHistorico.filter(m =>
+      m.motorista_nome.toLowerCase().includes(termo) ||
+      m.motorista_telefone.includes(termo) ||
+      (m.placa_veiculo && m.placa_veiculo.toLowerCase().includes(termo))
+    );
+  }, [buscaMotorista, motoristasHistorico]);
+
+  function handleSelecionarMotorista(motorista: MotoristaHistorico) {
+    onSelectMotorista(motorista);
+    setBuscaMotorista('');
+    setDropdownAberto(false);
+  }
 
   function handleDddChange(
     valor: string,
@@ -54,6 +96,47 @@ export default function TabMotorista({
   return (
     <div className="space-y-4 animate-fade-in">
       <h3 className="text-lg font-semibold text-gray-900">Motorista</h3>
+
+      {motoristasHistorico.length > 0 && (
+        <div className="relative" ref={dropdownRef}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Selecionar motorista já cadastrado
+          </label>
+          <input
+            type="text"
+            value={buscaMotorista}
+            onChange={(e) => { setBuscaMotorista(e.target.value); setDropdownAberto(true); }}
+            onFocus={() => setDropdownAberto(true)}
+            onBlur={() => setTimeout(() => setDropdownAberto(false), 200)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Buscar por nome, telefone ou placa..."
+          />
+          {dropdownAberto && motoristasFiltrados.length > 0 && (
+            <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {motoristasFiltrados.map((m, idx) => (
+                <li
+                  key={`${m.motorista_nome}-${m.motorista_telefone}-${idx}`}
+                  onMouseDown={() => handleSelecionarMotorista(m)}
+                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-gray-900">{m.motorista_nome}</div>
+                  <div className="text-sm text-gray-500 flex gap-3">
+                    <span>Tel: {m.motorista_telefone}</span>
+                    {m.placa_veiculo && <span>Placa: {m.placa_veiculo}</span>}
+                    {m.veiculo_modelo && <span>{m.veiculo_marca} {m.veiculo_modelo}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {dropdownAberto && buscaMotorista && motoristasFiltrados.length === 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm text-gray-500">
+              Nenhum motorista encontrado
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-1">Ou preencha manualmente abaixo</p>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">

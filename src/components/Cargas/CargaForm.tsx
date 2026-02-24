@@ -16,6 +16,7 @@ import {
   validarCelular,
   montarTelefoneBr,
 } from './CargaFormTabs';
+import type { MotoristaHistorico } from './CargaFormTabs';
 
 interface CargaFormProps {
   embarcadorId?: string;
@@ -50,6 +51,7 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
   const [envioAssistido, setEnvioAssistido] = useState<null | {
     linkRastreamento: string; whatsappUrl: string; smsUrl: string;
   }>(null);
+  const [motoristasHistorico, setMotoristasHistorico] = useState<MotoristaHistorico[]>([]);
 
   const [formData, setFormData] = useState<CargaFormData>({
     nota_fiscal: '', embarcador_id: embarcadorId || '',
@@ -68,6 +70,36 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
     max.setDate(max.getDate() + 8);
     return `${max.getFullYear()}-${String(max.getMonth() + 1).padStart(2, '0')}-${String(max.getDate()).padStart(2, '0')}T23:59`;
   }, [formData.data_carregamento]);
+
+  useEffect(() => {
+    async function carregarMotoristas() {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const token = getAccessTokenSync();
+        if (!token) return;
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/cargas?select=motorista_nome,motorista_telefone,placa_veiculo,veiculo_marca,veiculo_modelo,veiculo_cor,veiculo_ano,veiculo_ano_modelo,veiculo_importado,veiculo_cilindrada,veiculo_potencia,veiculo_combustivel,veiculo_chassi,veiculo_motor,veiculo_uf,veiculo_municipio&motorista_nome=not.is.null&motorista_telefone=not.is.null&order=created_at.desc`,
+          { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${token}` } }
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+        const vistos = new Set<string>();
+        const unicos: MotoristaHistorico[] = [];
+        for (const row of data) {
+          if (!row.motorista_nome || !row.motorista_telefone) continue;
+          const chave = `${row.motorista_nome}|${row.motorista_telefone}`;
+          if (vistos.has(chave)) continue;
+          vistos.add(chave);
+          unicos.push(row as MotoristaHistorico);
+        }
+        setMotoristasHistorico(unicos);
+        console.log('[MOTORISTAS] Histórico carregado:', unicos.length, 'motoristas');
+      } catch (err) { console.error('[MOTORISTAS] Erro:', err); }
+    }
+    carregarMotoristas();
+  }, []);
 
   useEffect(() => {
     if (embarcadorId) return;
@@ -96,6 +128,34 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
 
   function handleChange(field: keyof CargaFormData, value: any) {
     setFormData(prev => ({ ...prev, [field]: value }));
+  }
+
+  function handleSelectMotorista(motorista: MotoristaHistorico) {
+    const tel = motorista.motorista_telefone || '';
+    const ddd = tel.slice(0, 2);
+    const numero = tel.slice(2);
+    setTelefone1Ddd(ddd);
+    setTelefone1Numero(numero);
+    setTelefone1EhWhatsapp(true);
+    setFormData(prev => ({
+      ...prev,
+      motorista_nome: motorista.motorista_nome,
+      motorista_telefone: motorista.motorista_telefone,
+      placa_veiculo: motorista.placa_veiculo || '',
+      veiculo_marca: motorista.veiculo_marca || '',
+      veiculo_modelo: motorista.veiculo_modelo || '',
+      veiculo_cor: motorista.veiculo_cor || '',
+      veiculo_ano: motorista.veiculo_ano || '',
+      veiculo_ano_modelo: motorista.veiculo_ano_modelo || '',
+      veiculo_importado: motorista.veiculo_importado || '',
+      veiculo_cilindrada: motorista.veiculo_cilindrada || '',
+      veiculo_potencia: motorista.veiculo_potencia || '',
+      veiculo_combustivel: motorista.veiculo_combustivel || '',
+      veiculo_chassi: motorista.veiculo_chassi || '',
+      veiculo_motor: motorista.veiculo_motor || '',
+      veiculo_uf: motorista.veiculo_uf || '',
+      veiculo_municipio: motorista.veiculo_municipio || '',
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -327,6 +387,7 @@ export default function CargaForm({ embarcadorId, onSuccess, onCancel }: CargaFo
           telefone1EhWhatsapp={telefone1EhWhatsapp} setTelefone1EhWhatsapp={setTelefone1EhWhatsapp}
           telefoneWhatsappDdd={telefoneWhatsappDdd} setTelefoneWhatsappDdd={setTelefoneWhatsappDdd}
           telefoneWhatsappNumero={telefoneWhatsappNumero} setTelefoneWhatsappNumero={setTelefoneWhatsappNumero}
+          motoristasHistorico={motoristasHistorico} onSelectMotorista={handleSelectMotorista}
         />
       )}
       {activeTab === 'veiculo' && <TabVeiculo formData={formData} handleChange={handleChange} setFormData={setFormData} />}
